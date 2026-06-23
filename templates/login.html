@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Login - CO-PO Attainment Automation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        width: 100%;
+        max-width: 450px;
+        margin: 2rem auto;
+    }
+    .brand-title {
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="glass-card">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-gradient rounded-circle mb-3" style="width: 60px; height: 60px; background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;">
+                <i class="fa-solid fa-graduation-cap text-white fs-3"></i>
+            </div>
+            <h2 class="brand-title">CO-PO Attainment</h2>
+            <p class="text-muted small">Academic LAB Automation & Analytics System</p>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger bg-danger bg-opacity-10 text-danger border-0 mb-3 small" style="border-radius: 10px;">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label for="id_username" class="form-label text-muted small fw-semibold">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text border-secondary-subtle bg-light text-muted" style="border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-right: 0;">
+                        <i class="fa-solid fa-user"></i>
+                    </span>
+                    <input type="text" name="username" autofocus maxlength="150" class="form-control glass-input" required id="id_username" placeholder="Enter username" style="border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; border-left: 0 !important;">
+                </div>
+                {% if form.username.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.username.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_password" class="form-label text-muted small fw-semibold">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text border-secondary-subtle bg-light text-muted" style="border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-right: 0;">
+                        <i class="fa-solid fa-lock"></i>
+                    </span>
+                    <input type="password" name="password" class="form-control glass-input" required id="id_password" placeholder="Enter password" style="border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; border-left: 0 !important;">
+                </div>
+                {% if form.password.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.password.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-gradient w-100 py-3 mb-3">
+                Sign In <i class="fa-solid fa-right-to-bracket ms-2"></i>
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <span class="text-muted small">New user? </span>
+            <a href="{% url 'register' %}" class="text-indigo small fw-bold text-decoration-none hover-glow">Create an account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Marks - CO-PO Attainment Automation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-area {
+        border: 2px dashed rgba(99, 102, 241, 0.4);
+        background: #f8fafc;
+        border-radius: 20px;
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .upload-area:hover, .upload-area.dragover {
+        border-color: var(--secondary);
+        background: rgba(168, 85, 247, 0.08);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.1);
+    }
+    .upload-icon {
+        font-size: 3rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0" style="max-width: 900px; margin: 0 auto;">
+    <div class="mb-4">
+        <h1 class="fw-extrabold text-slate-800 mb-1">Upload Student Marks Workbook</h1>
+        <p class="text-muted">Import student performance records to automatically compute course outcomes.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Upload Form -->
+        <div class="col-12 col-md-8">
+            <div class="glass-card">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    
+                    <div class="upload-area mb-4" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <div class="upload-icon">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h4 class="fw-bold text-slate-800 mb-2">Drag & Drop Excel File</h4>
+                        <p class="text-muted small mb-3">Accepts standard Microsoft Excel formats (.xlsx, .xls)</p>
+                        
+                        <div id="fileInfo" class="d-none text-indigo fw-semibold mb-3">
+                            <i class="fa-solid fa-file-lines me-2"></i> <span id="fileName">No file selected</span>
+                        </div>
+                        
+                        <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2 text-slate-700 border-secondary border-opacity-50">
+                            Browse Local Files
+                        </button>
+                        
+                        <input type="file" name="file" id="fileInput" class="d-none" required onchange="handleFileSelect(this)">
+                    </div>
+
+                    <div class="alert alert-info bg-indigo-glow text-indigo-800 border-0 small mb-4" style="border-radius: 12px;">
+                        <div class="d-flex gap-2">
+                            <i class="fa-solid fa-circle-info text-indigo fs-5 mt-1"></i>
+                            <div>
+                                <strong class="text-indigo">Spreadsheet Rules:</strong>
+                                <ul class="mb-0 ps-3 mt-1">
+                                    <li>Worksheet must be named <strong>Sheet1</strong>.</li>
+                                    <li>Data rows must begin immediately at <strong>Row 2</strong>.</li>
+                                    <li>Columns should match standard fields (S.No, H.T.No, Name of Student, followed by internal/external scores).</li>
+                                    <li>Absent marks will be automatically tracked as <code>0.0</code> marks.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-gradient w-100 py-3">
+                        Upload and Proceed <i class="fa-solid fa-arrow-right ms-2"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="col-12 col-md-4">
+            <div class="glass-card h-100">
+                <h4 class="fw-bold text-slate-800 mb-3">Active Regulation</h4>
+                <p class="text-muted small mb-4">
+                    The calculations will execute against the following parameters. Adjust weights in configuration if necessary.
+                </p>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Academic Course:</span>
+                    <strong class="text-slate-800">{{ config.course_name }} ({{ config.course_code }})</strong>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted small d-block">Regulation Standard:</span>
+                    <strong class="text-slate-800">{{ config.regulation }}</strong>
+                </div>
+                <div class="mb-4">
+                    <span class="text-muted small d-block">Configured Batch:</span>
+                    <strong class="text-slate-800">A.Y. {{ config.academic_year }}</strong>
+                </div>
+                <a href="{% url 'config_edit' %}" class="btn btn-sm btn-outline-secondary w-100 py-2 text-indigo fw-bold hover-glow">
+                    <i class="fa-solid fa-sliders me-2"></i> Edit Mapping Weights
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+
+    // Drag events
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', e => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(fileInput);
+        }
+    }, false);
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            fileName.textContent = input.files[0].name;
+            fileInfo.classList.remove('d-none');
+        }
+    }
+</script>
+{% endblock %}

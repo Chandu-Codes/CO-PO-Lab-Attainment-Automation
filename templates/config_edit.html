@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% load processing_extras %}
+
+{% block title %}Course Configuration - CO-PO Attainment Automation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .grid-table {
+        background: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--glass-border);
+    }
+    .grid-table th {
+        background: rgba(99, 102, 241, 0.08);
+        color: #475569;
+        font-weight: 600;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 0.8rem;
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .grid-table td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        text-align: center;
+    }
+    .weight-input {
+        width: 60px;
+        text-align: center;
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        padding: 0.25rem 0.4rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+    }
+    .weight-input:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 8px var(--primary-glow) !important;
+    }
+    .tab-btn {
+        color: #64748b;
+        background: transparent;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom: 2px solid var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="mb-4">
+        <h1 class="fw-extrabold text-slate-800 mb-1">Configuration Control Panel</h1>
+        <p class="text-muted">Modify course parameters, weight distributions, and indirect survey attainment math structures.</p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Tabs Navigation -->
+        <div class="d-flex border-bottom border-secondary border-opacity-25 mb-4">
+            <button type="button" class="tab-btn active" id="tab-meta-btn" onclick="switchTab('meta')">
+                <i class="fa-solid fa-circle-info me-2"></i>Course Metadata
+            </button>
+            <button type="button" class="tab-btn" id="tab-weights-btn" onclick="switchTab('weights')">
+                <i class="fa-solid fa-table-cells me-2"></i>CO-PO Weights Grid
+            </button>
+            <button type="button" class="tab-btn" id="tab-survey-btn" onclick="switchTab('survey')">
+                <i class="fa-solid fa-square-poll-vertical me-2"></i>Survey Math Strings
+            </button>
+        </div>
+
+        <!-- Section 1: Course Metadata -->
+        <div id="section-meta" class="glass-card mb-4">
+            <h4 class="fw-bold text-slate-800 mb-4">
+                <i class="fa-solid fa-id-card text-indigo me-2"></i> Academic Identity Details
+            </h4>
+            <div class="row g-3">
+                {% for field in form %}
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label for="{{ field.id_for_label }}" class="form-label text-muted small fw-semibold">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in field.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Section 2: CO-PO Mapping Weights Grid -->
+        <div id="section-weights" class="glass-card mb-4 d-none">
+            <h4 class="fw-bold text-slate-800 mb-2">
+                <i class="fa-solid fa-table text-indigo me-2"></i> Direct CO-PO / PSO Weight Distributions
+            </h4>
+            <p class="text-muted small mb-4">
+                Configure weight intensities between 1.0 (low) and 3.0 (high) for target program outcomes. Leave cell empty to ignore mapping.
+            </p>
+            
+            <div class="table-responsive">
+                <table class="table grid-table text-slate-800 mb-0">
+                    <thead>
+                        <tr>
+                            <th>CO</th>
+                            {% for po in po_list %}
+                                <th>{{ po }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for co in co_list %}
+                            <tr>
+                                <td class="fw-bold text-indigo" style="font-size: 0.9rem;">{{ co }}</td>
+                                {% for po in po_list %}
+                                    <td>
+                                        <!-- Custom input fetch helper -->
+                                        {% with val=mapping|get_item:co|get_item:po %}
+                                            <input type="number" 
+                                                   step="0.1" 
+                                                   min="0.1" 
+                                                   max="3.0" 
+                                                   name="weight_{{ co }}_{{ po }}" 
+                                                   value="{{ val|default:'' }}" 
+                                                   class="form-control weight-input">
+                                        {% endwith %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 3: Course End Survey Survey Math Strings -->
+        <div id="section-survey" class="glass-card mb-4 d-none">
+            <h4 class="fw-bold text-slate-800 mb-2">
+                <i class="fa-solid fa-square-root-variable text-indigo me-2"></i> Indirect Survey Math Equations
+            </h4>
+            <p class="text-muted small mb-4">
+                Enter clean math expressions for each Course Outcome. The engine compiles these sandbox strings dynamically into real indirect outcomes.
+            </p>
+            
+            <div class="row g-3">
+                {% for co in co_list %}
+                    <div class="col-12 col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-slate-800 fw-semibold small">{{ co }} Equation String</label>
+                            {% with val=survey|get_item:co %}
+                                <input type="text" 
+                                       name="survey_{{ co }}" 
+                                       value="{{ val|default:'' }}" 
+                                       class="form-control glass-input font-monospace w-100" 
+                                       required 
+                                       placeholder="e.g. ((46/50)*3+(4/50)*2)">
+                            {% endwith %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="alert alert-info bg-indigo-glow border-0 mt-3 text-indigo-800 small mb-0" style="border-radius: 12px;">
+                <i class="fa-solid fa-circle-info me-2 text-indigo fs-5"></i>
+                <strong>Equation Syntax:</strong> Whitelisted operations include numbers, standard division <code>/</code>, multiplication <code>*</code>, addition <code>+</code>, subtraction <code>-</code>, and grouping parentheses <code>()</code>. Ensure equations resolve cleanly.
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-end gap-3 mt-4">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary text-slate-700 border-secondary border-opacity-35 px-4 py-2">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-gradient px-4 py-2">
+                Save Configurations <i class="fa-solid fa-circle-check ms-2"></i>
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tabName) {
+        // Toggle tabs
+        document.getElementById('tab-meta-btn').classList.remove('active');
+        document.getElementById('tab-weights-btn').classList.remove('active');
+        document.getElementById('tab-survey-btn').classList.remove('active');
+        
+        document.getElementById('section-meta').classList.add('d-none');
+        document.getElementById('section-weights').classList.add('d-none');
+        document.getElementById('section-survey').classList.add('d-none');
+
+        if (tabName === 'meta') {
+            document.getElementById('tab-meta-btn').classList.add('active');
+            document.getElementById('section-meta').classList.remove('d-none');
+        } else if (tabName === 'weights') {
+            document.getElementById('tab-weights-btn').classList.add('active');
+            document.getElementById('section-weights').classList.remove('d-none');
+        } else if (tabName === 'survey') {
+            document.getElementById('tab-survey-btn').classList.add('active');
+            document.getElementById('section-survey').classList.remove('d-none');
+        }
+    }
+</script>
+{% endblock %}
